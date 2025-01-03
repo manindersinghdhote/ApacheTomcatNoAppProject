@@ -18,7 +18,7 @@ pipeline {
                         sh "kubectl cluster-info"
                         
                         // Define the WAR file path
-                        def warFile = "${workspace}/earthmavenproject-dockerimage/target/earth-app-1.0-SNAPSHOT.war"
+                        def warFile = "\"${workspace}/earthmavenproject-dockerimage/target/earth-app-1.0-SNAPSHOT.war\""
                         def podName = "tomcat-server-deployment-7b8577f66b-jppnk" // Replace with your actual pod name
 
                         // Copy the WAR file to the Tomcat container
