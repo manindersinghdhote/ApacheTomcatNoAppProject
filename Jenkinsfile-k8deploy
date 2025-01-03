@@ -1,3 +1,5 @@
+// this will only build the empty image of tomcat and push it to dockerhub
+
 pipeline {
     agent any
 

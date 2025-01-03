@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+    environment {
+        K8_CLUSTER_NAME = "kubernetes"
+        K8_NAMESPACE = "default"
+        K8_CONTEXT_NAME = "kubernetes-admin@kubernetes"
+        CREDENTIALS_ID = "kube-config"
+    }
+    stages {
+        stage('Deploy WAR to Tomcat') {
+            steps {
+                script {
+                    def warFile = "${workspace}/earthmavenproject-dockerimage/target/earth-app-1.0-SNAPSHOT.war"
+                    def renamedWarFile = "${workspace}/earthmavenproject-dockerimage/target/ROOT.war"
+                    def podName = "tomcat-server-deployment-7b8577f66b-jppnk" // Replace with your actual pod name
+
+                    // Set up and connect Kubernetes configuration using credentials
+                    withCredentials([kubeconfigFile(credentialsId: "${CREDENTIALS_ID}", variable: 'KUBECONFIG')]) {
+                        // Rename the WAR file to ROOT.war
+                        sh "mv ${warFile} ${renamedWarFile}"
+
+                        // Set the Kubernetes context
+                        sh "kubectl config use-context ${K8_CONTEXT_NAME}"
+
+                        // Verify Kubernetes connection (optional)
+                        sh "kubectl cluster-info"
+
+                        // Copy the renamed WAR file to the Tomcat container's webapps directory
+                        sh "kubectl cp ${renamedWarFile} ${podName}:/usr/local/tomcat/webapps/ROOT.war -n ${K8_NAMESPACE}"
+                    }
+                }
+            }
+        }
+    }
+}
