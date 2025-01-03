@@ -10,23 +10,19 @@ pipeline {
         stage('Deploy WAR to Tomcat') {
             steps {
                 script {
-                    def warFile = "${workspace}/earthmavenproject-dockerimage/target/earth-app-1.0-SNAPSHOT.war"
-                    def renamedWarFile = "${workspace}/earthmavenproject-dockerimage/target/ROOT.war"
-                    def podName = "tomcat-server-deployment-7b8577f66b-jppnk" // Replace with your actual pod name
-
-                    // Set up and connect Kubernetes configuration using credentials
-                    withCredentials([kubeconfigFile(credentialsId: "${CREDENTIALS_ID}", variable: 'KUBECONFIG')]) {
-                        // Rename the WAR file to ROOT.war
-                        sh "mv ${warFile} ${renamedWarFile}"
-
+                    // Set Kubeconfig environment variable using credentials binding
+                    withCredentials([file(credentialsId: "${CREDENTIALS_ID}", variable: 'KUBECONFIG')]) {
                         // Set the Kubernetes context
                         sh "kubectl config use-context ${K8_CONTEXT_NAME}"
-
-                        // Verify Kubernetes connection (optional)
+                        // Verify the connection to the Kubernetes cluster
                         sh "kubectl cluster-info"
+                        
+                        // Define the WAR file path
+                        def warFile = "${workspace}/earthmavenproject-dockerimage/target/earth-app-1.0-SNAPSHOT.war"
+                        def podName = "tomcat-server-deployment-7b8577f66b-jppnk" // Replace with your actual pod name
 
-                        // Copy the renamed WAR file to the Tomcat container's webapps directory
-                        sh "kubectl cp ${renamedWarFile} ${podName}:/usr/local/tomcat/webapps/ROOT.war -n ${K8_NAMESPACE}"
+                        // Copy the WAR file to the Tomcat container
+                        sh "kubectl cp ${warFile} ${podName}:/usr/local/tomcat/webapps/ROOT.war"
                     }
                 }
             }
