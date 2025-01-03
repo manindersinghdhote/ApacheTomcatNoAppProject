@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_REPOSITORY = "manindersinghdhote"
+        DOCKER_IMAGE_NAME = "tomcat-server"
+        DOCKER_FULL_IMAGE = "${DOCKER_REPOSITORY}/${DOCKER_IMAGE_NAME}"
+        K8_CLUSTER_NAME = "kubernetes"
+        K8_DEPLOYMENT_NAME = "tomcat-server-deployment"
+        K8_NAMESPACE = "default"
+        K8_SERVICE_NAME = "tomcat-server-service"
+        K8_NODE_PORT = 30006
+        K8_CONTEXT_NAME = "kubernetes-admin@kubernetes"
+        K8_TARGET_PORT = "8080"
+        CREDENTIALS_ID = "kube-config"
+    }
+
+    stages 
+    {   
+        stage('Pull Docker Image from DockerHub') {
+            steps {
+                script {
+                    echo "Pulling Docker image ${DOCKER_FULL_IMAGE} from DockerHub"
+                }
+            }
+        }     
+        stage('Deploy to Kubernetes') 
+        {
+            steps {
+                script {
+                    withKubeConfig([credentialsId: "${CREDENTIALS_ID}", contextName: "${K8_CONTEXT_NAME}"]) {
+                        sh """
+                        kubectl create deployment ${K8_DEPLOYMENT_NAME} --context=${K8_CONTEXT_NAME} --image=${DOCKER_FULL_IMAGE}:latest --namespace=${K8_NAMESPACE} || echo "Deployment already exists"
+                        kubectl set image deployment/${K8_DEPLOYMENT_NAME} ${DOCKER_IMAGE_NAME}=${DOCKER_FULL_IMAGE}:latest -n ${K8_NAMESPACE}
+                        kubectl expose deployment ${K8_DEPLOYMENT_NAME} --type=NodePort --name=${K8_SERVICE_NAME} --port=80 --target-port=${K8_TARGET_PORT} -n ${K8_NAMESPACE}
+                        kubectl patch service ${K8_SERVICE_NAME} --namespace=${K8_NAMESPACE} -p '{"spec": {"ports": [{"port": 80, "targetPort": ${K8_TARGET_PORT}, "nodePort": ${K8_NODE_PORT}}]}}'
+                        kubectl rollout status deployment/${K8_DEPLOYMENT_NAME} --namespace=${K8_NAMESPACE}
+                        """
+                    }   
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment and service exposure were successful!"
+        }
+        failure {
+            echo "There was a problem with the pipeline execution!"
+        }
+    }
+}
+
+
