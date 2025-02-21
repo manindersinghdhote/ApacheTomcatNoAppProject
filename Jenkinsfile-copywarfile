@@ -19,7 +19,7 @@ pipeline {
                         
                         // Define the WAR file path
                         def warFile = "/var/lib/jenkins/workspace/earthmavenproject-dockerimage/target/earth-app-1.0-SNAPSHOT.war"
-                        def podName = "tomcat-server-deployment-7b8577f66b-jppnk" // Replace with your actual pod name
+                        def podName = "tomcat-server-deployment-7b8577f66b-jwjfc" // Replace with your actual pod name
 
                         // Copy the WAR file to the Tomcat container
                         sh "kubectl cp ${warFile} ${podName}:/usr/local/tomcat/webapps/ROOT.war"
